@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aerator Readiness — ETP2 & ETP3</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',Arial,sans-serif;background:#f5f5f5;color:#1a1a1a;font-size:14px}
+.app{max-width:900px;margin:0 auto;padding:1.25rem 1rem}
+.hdr{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:1.25rem;flex-wrap:wrap}
+.hdr h1{font-size:19px;font-weight:600;color:#111}
+.hdr p{font-size:12px;color:#666;margin-top:2px}
+.sum-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-bottom:1.25rem}
+.mc{background:#fff;border-radius:8px;padding:12px 14px;border:1px solid #e5e5e5}
+.mc-lbl{font-size:11px;color:#888;margin-bottom:4px}
+.mc-val{font-size:26px;font-weight:600;color:#111}
+.mc-val.ok{color:#1D9E75}.mc-val.warn{color:#BA7517}.mc-val.danger{color:#E24B4A}
+.alert{border-radius:8px;padding:9px 13px;margin-bottom:8px;font-size:13px;display:flex;align-items:flex-start;gap:8px}
+.alert.warn{background:#FAEEDA;color:#633806;border:1px solid #FAC775}
+.alert.danger{background:#FCEBEB;color:#501313;border:1px solid #F09595}
+.pond-wrap{margin-bottom:1.25rem}
+.pond-hdr{display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap}
+.pond-title{font-size:15px;font-weight:600;color:#111}
+.badge{font-size:11px;padding:2px 9px;border-radius:20px;font-weight:500}
+.badge-ok{background:#EAF3DE;color:#27500A}
+.badge-warn{background:#FAEEDA;color:#633806}
+.badge-danger{background:#FCEBEB;color:#791F1F}
+.pond-stats{margin-left:auto;font-size:12px;color:#888}
+.mgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}
+@media(max-width:600px){.mgrid{grid-template-columns:repeat(2,1fr)}}
+.mc-card{background:#fff;border:1px solid #e5e5e5;border-radius:8px;padding:10px 11px;cursor:pointer;transition:border-color .15s,box-shadow .15s}
+.mc-card:hover{border-color:#aaa;box-shadow:0 2px 6px rgba(0,0,0,.07)}
+.mc-card.sel{border:2px solid #378ADD;background:#f0f7ff}
+.mc-card.overdue{border-left:3px solid #E24B4A;border-radius:0 8px 8px 0}
+.mc-card.upcoming{border-left:3px solid #BA7517;border-radius:0 8px 8px 0}
+.ct{font-size:11px;color:#999;margin-bottom:2px}
+.cn{font-size:13px;font-weight:600;color:#111;margin-bottom:6px}
+.row-status{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:4px}
+.pill{font-size:11px;padding:1px 7px;border-radius:20px;display:inline-flex;align-items:center;gap:3px;font-weight:500}
+.pill-ok{background:#EAF3DE;color:#27500A}
+.pill-bad{background:#FCEBEB;color:#791F1F}
+.pill-warn{background:#FAEEDA;color:#633806}
+.pill-info{background:#E6F1FB;color:#0C447C}
+.dl-txt{font-size:11px;color:#999;margin-top:3px}
+.dl-ok{color:#1D9E75}.dl-warn{color:#BA7517}.dl-danger{color:#E24B4A}
+.panel{background:#fff;border:1px solid #e5e5e5;border-radius:12px;padding:1.2rem;margin-bottom:1.25rem;display:none}
+.panel.open{display:block}
+.panel-hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1rem;padding-bottom:.75rem;border-bottom:1px solid #eee}
+.panel-hdr h2{font-size:16px;font-weight:600;color:#111}
+.panel-hdr p{font-size:12px;color:#888;margin-top:2px}
+.sec{margin-bottom:14px}
+.sec-div{border-top:1px solid #eee;padding-top:12px;margin-top:4px}
+.sec-lbl{font-size:11px;font-weight:600;color:#888;letter-spacing:.05em;text-transform:uppercase;margin-bottom:8px}
+.fg{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:500px){.fg{grid-template-columns:1fr}}
+.fi label{font-size:12px;color:#666;display:block;margin-bottom:3px}
+.fi input,.fi select,.fi textarea{width:100%;font-size:13px;padding:7px 10px;border:1px solid #ddd;border-radius:7px;background:#fafafa;color:#111;outline:none;transition:border-color .15s}
+.fi input:focus,.fi select:focus,.fi textarea:focus{border-color:#378ADD;background:#fff}
+.fi textarea{resize:vertical;min-height:52px}
+.fi.full{grid-column:1/-1}
+.toggle-row{display:flex;gap:7px;flex-wrap:wrap}
+.tog{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:8px;border:1px solid #ddd;font-size:13px;cursor:pointer;color:#444;background:#fafafa;font-weight:500;transition:all .12s}
+.tog:hover{background:#f0f0f0}
+.tog.active-ok{background:#EAF3DE;border-color:#97C459;color:#27500A}
+.tog.active-bad{background:#FCEBEB;border-color:#F09595;color:#791F1F}
+.tog.active-warn{background:#FAEEDA;border-color:#FAC775;color:#633806}
+.num-row{display:flex;align-items:center;gap:6px}
+.num-row input[type=number]{width:68px;text-align:center}
+.brow{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+.btn{font-size:13px;padding:7px 16px;border-radius:8px;cursor:pointer;border:1px solid #ddd;background:#fafafa;color:#333;font-weight:500;transition:all .12s}
+.btn:hover{background:#f0f0f0;border-color:#bbb}
+.btn-p{background:#378ADD;color:#fff;border-color:#378ADD}
+.btn-p:hover{background:#185FA5}
+.btn-del{background:#FCEBEB;color:#A32D2D;border-color:#F09595}
+.dl-preview{margin-top:5px;font-size:12px;min-height:16px;font-weight:500}
+.htbl-wrap{overflow-x:auto;border:1px solid #e5e5e5;border-radius:8px}
+.htbl{width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed}
+.htbl th{text-align:left;padding:8px 10px;font-weight:600;border-bottom:1px solid #eee;color:#888;font-size:11px;background:#fafafa}
+.htbl td{padding:8px 10px;border-bottom:1px solid #f0f0f0;color:#333;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.htbl tr:last-child td{border-bottom:none}
+.htbl tr:hover td{background:#fafafa}
+.top-btns{display:flex;gap:7px;flex-wrap:wrap}
+.view-btn{font-size:13px;padding:7px 14px;border-radius:8px;cursor:pointer;border:1px solid #ddd;background:#fff;color:#555;font-weight:500}
+.view-btn:hover{background:#f5f5f5}
+.view-btn.active{background:#111;color:#fff;border-color:#111}
+.sync-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#ccc;margin-right:5px;vertical-align:middle}
+.sync-dot.ok{background:#1D9E75}
+.sync-dot.err{background:#E24B4A}
+.sync-dot.loading{background:#BA7517;animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.filter-row{display:flex;gap:8px;margin-bottom:1rem;flex-wrap:wrap;align-items:center}
+.filter-row select{font-size:13px;padding:6px 10px;border:1px solid #ddd;border-radius:7px;background:#fafafa;color:#333}
+.empty{color:#999;font-size:14px;padding:2rem 0;text-align:center}
+/* loading overlay */
+.loading-overlay{display:none;position:fixed;inset:0;background:rgba(255,255,255,.8);z-index:200;align-items:center;justify-content:center;flex-direction:column;gap:10px}
+.loading-overlay.show{display:flex}
+.spinner{width:36px;height:36px;border:3px solid #eee;border-top-color:#378ADD;border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+/* config overlay */
+.cfg-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100;align-items:center;justify-content:center}
+.cfg-overlay.open{display:flex}
+.cfg-box{background:#fff;border-radius:12px;padding:1.5rem;width:min(500px,94vw);max-height:90vh;overflow-y:auto}
+.cfg-box h2{font-size:16px;font-weight:600;margin-bottom:.5rem}
+.cfg-box p{font-size:13px;color:#666;margin-bottom:1rem;line-height:1.6}
+.cfg-field{margin-bottom:12px}
+.cfg-field label{font-size:12px;color:#555;display:block;margin-bottom:3px;font-weight:600}
+.cfg-field input{width:100%;font-size:13px;padding:8px 10px;border:1px solid #ddd;border-radius:7px;background:#fafafa;color:#111}
+.cfg-field input:focus{outline:none;border-color:#378ADD}
+.cfg-note{font-size:12px;color:#888;margin-top:6px;line-height:1.5;background:#f5f5f5;padding:8px 10px;border-radius:6px}
+</style>
+</head>
+<body>
+
+<!-- Loading -->
+<div class="loading-overlay" id="loading">
+  <div class="spinner"></div>
+  <p style="font-size:13px;color:#666">กำลังโหลดข้อมูล...</p>
+</div>
+
+<!-- Config Overlay -->
+<div class="cfg-overlay" id="cfg-overlay">
+  <div class="cfg-box">
+    <h2>⚙️ ตั้งค่า Google Sheets</h2>
+    <p>วาง <b>Script URL</b> ที่ได้จากการ Deploy Apps Script<br>ดูขั้นตอนในไฟล์ <b>คู่มือ_GoogleSheets.md</b></p>
+    <div class="cfg-field">
+      <label>Apps Script Web App URL</label>
+      <input id="cfg-url" placeholder="https://script.google.com/macros/s/AKfy.../exec" style="font-size:12px">
+      <div class="cfg-note">📌 URL ต้องขึ้นต้นด้วย https://script.google.com/macros/s/ และลงท้ายด้วย /exec</div>
+    </div>
+    <div class="brow" style="margin-top:1rem">
+      <button class="btn btn-p" onclick="saveConfig()">💾 บันทึกและเชื่อมต่อ</button>
+      <button class="btn" onclick="useOffline()">ใช้งานแบบ offline</button>
+    </div>
+  </div>
+</div>
+
+<div class="app">
+  <div class="hdr">
+    <div>
+      <h1>🌀 Aerator Readiness — ETP2 &amp; ETP3</h1>
+      <p><span class="sync-dot" id="sync-dot"></span><span id="sync-txt">กำลังเชื่อมต่อ...</span>&nbsp;|&nbsp;<span id="ts">—</span></p>
+    </div>
+    <div class="top-btns">
+      <button class="view-btn active" id="vbtn-dash" onclick="showView('dash')">Dashboard</button>
+      <button class="view-btn" id="vbtn-hist" onclick="showView('hist')">ประวัติ</button>
+      <button class="btn" onclick="doExport()">⬇ Export CSV</button>
+      <button class="btn" onclick="openConfig()" title="ตั้งค่า">⚙</button>
+    </div>
+  </div>
+
+  <div id="alerts"></div>
+
+  <div id="v-dash">
+    <div class="sum-grid">
+      <div class="mc"><div class="mc-lbl">เครื่องทั้งหมด</div><div class="mc-val">16</div></div>
+      <div class="mc"><div class="mc-lbl">Aerator เสีย</div><div class="mc-val danger" id="s-afault">—</div></div>
+      <div class="mc"><div class="mc-lbl">Hose สึก</div><div class="mc-val warn" id="s-hworn">—</div></div>
+      <div class="mc"><div class="mc-lbl">เลย Deadline</div><div class="mc-val danger" id="s-over">—</div></div>
+    </div>
+    <div id="pond-ETP2" class="pond-wrap"></div>
+    <div id="pond-ETP3" class="pond-wrap"></div>
+
+    <!-- DETAIL PANEL -->
+    <div id="panel" class="panel">
+      <div class="panel-hdr">
+        <div><p id="p-pond"></p><h2 id="p-name"></h2></div>
+        <button class="btn" onclick="closePanel()">✕ ปิด</button>
+      </div>
+      <div class="sec">
+        <div class="sec-lbl">สถานะ Aerator</div>
+        <div class="toggle-row">
+          <button class="tog" id="t-aerok" onclick="setAer('ok')">✓ ปกติ</button>
+          <button class="tog" id="t-aerf"  onclick="setAer('fault')">✕ เสีย</button>
+        </div>
+      </div>
+      <div class="sec sec-div">
+        <div class="sec-lbl">Overhaul</div>
+        <div class="fg">
+          <div class="fi"><label>Overhaul ล่าสุด</label><input type="date" id="p-oh-last"></div>
+          <div class="fi"><label>Overhaul ครั้งถัดไป</label><input type="date" id="p-oh-next" oninput="previewDL('p-oh-next','dl-oh')"></div>
+        </div>
+        <div class="dl-preview" id="dl-oh"></div>
+      </div>
+      <div class="sec sec-div">
+        <div class="sec-lbl">สถานะ Hose</div>
+        <div class="toggle-row" style="margin-bottom:10px">
+          <button class="tog" id="t-hok"   onclick="setHose('ok')">✓ ปกติ</button>
+          <button class="tog" id="t-hworn" onclick="setHose('worn')">⚠ สึก</button>
+        </div>
+        <div class="fg">
+          <div class="fi"><label>เปลี่ยนสาย Hose ล่าสุด</label><input type="date" id="p-hose-last"></div>
+          <div class="fi">
+            <label>ตัดสาย Hose แล้ว (ครั้ง)</label>
+            <div class="num-row">
+              <button class="btn" onclick="adjCut(-1)" style="padding:5px 11px;font-size:16px">−</button>
+              <input type="number" id="p-hose-cut" value="0" min="0" style="text-align:center">
+              <button class="btn" onclick="adjCut(1)"  style="padding:5px 11px;font-size:16px">+</button>
+            </div>
+          </div>
+          <div class="fi"><label>กำหนดเปลี่ยนสาย Hose ครั้งถัดไป</label><input type="date" id="p-hose-next" oninput="previewDL('p-hose-next','dl-hose')"></div>
+        </div>
+        <div class="dl-preview" id="dl-hose"></div>
+      </div>
+      <div class="sec sec-div">
+        <div class="sec-lbl">กำหนดซ่อมบำรุง</div>
+        <div class="fg">
+          <div class="fi"><label>วันที่ตรวจสอบ</label><input type="date" id="p-checked"></div>
+          <div class="fi"><label>ซ่อมบำรุงครั้งถัดไป</label><input type="date" id="p-nextmaint" oninput="previewDL('p-nextmaint','dl-maint')"></div>
+        </div>
+        <div class="dl-preview" id="dl-maint"></div>
+      </div>
+      <div class="sec sec-div">
+        <div class="sec-lbl">หมายเหตุ</div>
+        <div class="fg"><div class="fi full"><textarea id="p-note" placeholder="อาการ สาเหตุ หรือแผนงาน..."></textarea></div></div>
+      </div>
+      <div class="brow">
+        <button class="btn btn-p" id="save-btn" onclick="savePanel()">💾 บันทึก</button>
+        <button class="btn" onclick="closePanel()">ยกเลิก</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- HISTORY -->
+  <div id="v-hist" style="display:none">
+    <div class="filter-row">
+      <select id="hf-pond" onchange="renderHist()">
+        <option value="all">ทุกบ่อ</option>
+        <option value="ETP2">ETP2</option>
+        <option value="ETP3">ETP3</option>
+      </select>
+      <select id="hf-aer" onchange="renderHist()">
+        <option value="all">ทุกสถานะ Aerator</option>
+        <option value="ok">ปกติ</option>
+        <option value="fault">เสีย</option>
+      </select>
+      <button class="btn btn-del" onclick="clearHist()">🗑 ล้างประวัติ</button>
+      <button class="btn" onclick="loadHistory()" style="margin-left:auto">🔄 รีเฟรช</button>
+    </div>
+    <div id="hist-body"></div>
+  </div>
+</div>
+
+<script>
+const PONDS = {
+  ETP2: ["132A007","132A008","132A009","132A010","132A011","132A012","132A013","132A014"],
+  ETP3: ["133A007","133A008","133A009","133A010","133A011","133A012","133A013","133A014"]
+};
+const ALL_TAGS = [...PONDS.ETP2, ...PONDS.ETP3];
+const WARN_THRESHOLD = 2;
+
+let M = {}, H = [], SEL = null, AER_TMP = 'ok', HOSE_TMP = 'ok';
+let SCRIPT_URL = '', OFFLINE = false;
+
+// ── storage ───────────────────────────────────────────────────
+function lsGet(k){try{return localStorage.getItem(k)}catch{return null}}
+function lsSet(k,v){try{localStorage.setItem(k,v)}catch{}}
+
+// ── default machine ───────────────────────────────────────────
+function defaultMachine(pond){
+  return {tag:'',pond,aer:'ok',hose:'ok',ohLast:'',ohNext:'',hoseLast:'',hoseCut:0,hoseNext:'',checked:'',nextMaint:'',note:''};
+}
+function initLocal(){
+  for(const[p,tags]of Object.entries(PONDS))
+    tags.forEach(t=>{if(!M[t]){M[t]={...defaultMachine(p),tag:t};}});
+}
+
+// ── API helpers ───────────────────────────────────────────────
+async function apiGet(action){
+  const r = await fetch(`${SCRIPT_URL}?action=${action}&t=${Date.now()}`);
+  return r.json();
+}
+async function apiPost(action, data){
+  const r = await fetch(SCRIPT_URL, {
+    method:'POST', mode:'cors',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({action, data})
+  });
+  return r.json();
+}
+
+// ── config ────────────────────────────────────────────────────
+function openConfig(){
+  document.getElementById('cfg-url').value = SCRIPT_URL || '';
+  document.getElementById('cfg-overlay').classList.add('open');
+}
+function saveConfig(){
+  const url = document.getElementById('cfg-url').value.trim();
+  if(!url.startsWith('https://script.google.com')){
+    alert('URL ไม่ถูกต้อง ต้องขึ้นต้นด้วย https://script.google.com');return;
+  }
+  lsSet('gs_url', url);
+  document.getElementById('cfg-overlay').classList.remove('open');
+  location.reload();
+}
+function useOffline(){
+  OFFLINE = true;
+  document.getElementById('cfg-overlay').classList.remove('open');
+  setSyncStatus('warn','โหมด Offline (ข้อมูลไม่ sync ทีม)');
+  initLocal(); render();
+}
+
+// ── sync status ───────────────────────────────────────────────
+function setSyncStatus(state, txt){
+  document.getElementById('sync-dot').className='sync-dot '+state;
+  document.getElementById('sync-txt').textContent=txt;
+}
+function setTs(){
+  document.getElementById('ts').textContent='อัปเดต: '+new Date().toLocaleString('th-TH');
+}
+function showLoading(b){
+  document.getElementById('loading').className='loading-overlay'+(b?' show':'');
+}
+
+// ── load from Sheets ──────────────────────────────────────────
+async function loadMachines(){
+  showLoading(true);
+  setSyncStatus('loading','กำลังโหลดข้อมูล...');
+  try{
+    const data = await apiGet('getMachines');
+    if(data.error) throw new Error(data.error);
+    initLocal();
+    for(const[tag,m]of Object.entries(data)) M[tag]={...M[tag],...m,tag};
+    setSyncStatus('ok','เชื่อมต่อ Google Sheets แล้ว'); setTs();
+  }catch(e){
+    console.error(e);
+    setSyncStatus('err','โหลดไม่ได้ — กด ⚙ ตรวจสอบ URL');
+    initLocal();
+  }
+  render(); showLoading(false);
+}
+async function loadHistory(){
+  if(OFFLINE)return;
+  try{
+    const data = await apiGet('getHistory');
+    if(!data.error) H = data;
+    renderHist();
+  }catch(e){ console.error(e); }
+}
+
+// ── save to Sheets ────────────────────────────────────────────
+async function saveMachineRemote(tag, m){
+  if(OFFLINE){M[tag]=m;render();return;}
+  showLoading(true);
+  try{
+    await apiPost('saveMachine',{...m,tag});
+    M[tag]=m; setTs();
+  }catch(e){
+    alert('บันทึกไม่สำเร็จ กรุณาลองใหม่\n'+e.message);
+  }
+  render(); showLoading(false);
+}
+async function addHistoryRemote(entry){
+  if(OFFLINE){H.unshift(entry);return;}
+  try{ await apiPost('addHistory',entry); }catch(e){console.error(e);}
+}
+async function clearHist(){
+  if(!confirm('ล้างประวัติทั้งหมด?'))return;
+  if(OFFLINE){H=[];renderHist();return;}
+  showLoading(true);
+  try{ await apiPost('clearHistory',{}); await loadHistory(); }catch(e){alert('ลบไม่สำเร็จ')}
+  showLoading(false);
+}
+
+// ── deadline helpers ──────────────────────────────────────────
+function ddiff(d){
+  if(!d)return null;
+  const now=new Date();now.setHours(0,0,0,0);
+  const t=new Date(d);t.setHours(0,0,0,0);
+  return Math.round((t-now)/86400000);
+}
+function dlClass(d){return d===null?'':d<0?'dl-danger':d<=7?'dl-warn':'dl-ok'}
+function dlText(d){
+  if(d===null)return '';
+  if(d<0)return`เลย deadline ${Math.abs(d)} วัน`;
+  if(d===0)return'ครบกำหนดวันนี้';
+  return`อีก ${d} วัน`;
+}
+function previewDL(inId,outId){
+  const d=ddiff(document.getElementById(inId).value);
+  document.getElementById(outId).innerHTML=d!==null?`<span class="${dlClass(d)}">📅 ${dlText(d)}</span>`:'';
+}
+
+// ── render ────────────────────────────────────────────────────
+function renderAlerts(){
+  const el=document.getElementById('alerts');let html='';
+  for(const[pond,tags]of Object.entries(PONDS)){
+    const faults=tags.filter(t=>M[t]?.aer==='fault');
+    const worn=tags.filter(t=>M[t]?.hose==='worn');
+    const bad=[...new Set([...faults,...worn])];
+    const over=tags.filter(t=>{const m=M[t];return m&&[m.nextMaint,m.ohNext,m.hoseNext].some(d=>{const x=ddiff(d);return x!==null&&x<0;});});
+    if(faults.length>=WARN_THRESHOLD)
+      html+=`<div class="alert danger">🚨 บ่อ ${pond}: Aerator เสีย ${faults.length} เครื่อง (${faults.join(', ')}) — ต้องดำเนินการเร่งด่วน</div>`;
+    else if(bad.length>=WARN_THRESHOLD)
+      html+=`<div class="alert warn">⚠️ บ่อ ${pond}: เครื่องไม่พร้อม ${bad.length} เครื่อง (${bad.join(', ')})</div>`;
+    if(over.length)
+      html+=`<div class="alert danger">📅 บ่อ ${pond}: เลย deadline ${over.length} เครื่อง (${over.join(', ')})</div>`;
+  }
+  el.innerHTML=html;
+}
+function renderSummary(){
+  const all=Object.values(M);
+  document.getElementById('s-afault').textContent=all.filter(m=>m.aer==='fault').length;
+  document.getElementById('s-hworn').textContent=all.filter(m=>m.hose==='worn').length;
+  document.getElementById('s-over').textContent=all.filter(m=>[m.nextMaint,m.ohNext,m.hoseNext].some(d=>{const x=ddiff(d);return x!==null&&x<0;})).length;
+}
+function worstDiff(m){
+  const ds=[m.nextMaint,m.ohNext,m.hoseNext].map(ddiff).filter(d=>d!==null);
+  return ds.length?Math.min(...ds):null;
+}
+function renderPond(pond){
+  const tags=PONDS[pond];
+  const faults=tags.filter(t=>M[t]?.aer==='fault').length;
+  const worn=tags.filter(t=>M[t]?.hose==='worn').length;
+  const bad=tags.filter(t=>M[t]?.aer==='fault'||M[t]?.hose==='worn').length;
+  let bClass='badge-ok',bLabel='ปกติ';
+  if(faults>=WARN_THRESHOLD){bClass='badge-danger';bLabel='วิกฤต';}
+  else if(bad>=WARN_THRESHOLD){bClass='badge-warn';bLabel='แจ้งเตือน';}
+  const cards=tags.map(tag=>{
+    const m=M[tag]||{...defaultMachine(pond),tag};
+    const aerPill=m.aer==='ok'?`<span class="pill pill-ok">🌀 ปกติ</span>`:`<span class="pill pill-bad">🌀 เสีย</span>`;
+    const hosePill=m.hose==='ok'?`<span class="pill pill-ok">Hose ปกติ</span>`:`<span class="pill pill-warn">Hose สึก</span>`;
+    const cutBadge=m.hoseCut>0?`<span class="pill pill-info">ตัด ${m.hoseCut}x</span>`:'';
+    const diff=worstDiff(m);const dlTxt=dlText(diff);
+    let cls='mc-card'+(SEL===tag?' sel':'');
+    if(diff!==null&&diff<0)cls+=' overdue';
+    else if(diff!==null&&diff<=7)cls+=' upcoming';
+    return `<div class="${cls}" onclick="openPanel('${tag}')" tabindex="0" role="button">
+      <div class="ct">${tag}</div>
+      <div class="cn">Aerator ${tag.slice(-3)}</div>
+      <div class="row-status">${aerPill}${hosePill}${cutBadge}</div>
+      ${dlTxt?`<div class="dl-txt ${dlClass(diff)}">📅 ${dlTxt}</div>`:''}
+    </div>`;
+  }).join('');
+  document.getElementById('pond-'+pond).innerHTML=`
+    <div class="pond-hdr">
+      <span class="pond-title">🌊 บ่อ ${pond}</span>
+      <span class="badge ${bClass}">${bLabel}</span>
+      <span class="pond-stats">เสีย ${faults} | Hose สึก ${worn}</span>
+    </div>
+    <div class="mgrid">${cards}</div>`;
+}
+function render(){renderSummary();renderAlerts();renderPond('ETP2');renderPond('ETP3');}
+
+// ── panel ─────────────────────────────────────────────────────
+function setAer(v){AER_TMP=v;document.getElementById('t-aerok').className='tog'+(v==='ok'?' active-ok':'');document.getElementById('t-aerf').className='tog'+(v==='fault'?' active-bad':'');}
+function setHose(v){HOSE_TMP=v;document.getElementById('t-hok').className='tog'+(v==='ok'?' active-ok':'');document.getElementById('t-hworn').className='tog'+(v==='worn'?' active-warn':'');}
+function adjCut(n){const el=document.getElementById('p-hose-cut');el.value=Math.max(0,(parseInt(el.value)||0)+n);}
+
+function openPanel(tag){
+  SEL=tag;
+  const m=M[tag]||{...defaultMachine(PONDS.ETP2.includes(tag)?'ETP2':'ETP3'),tag};
+  document.getElementById('p-pond').textContent=m.pond+' — '+tag;
+  document.getElementById('p-name').textContent='Aerator '+tag.slice(-3);
+  setAer(m.aer||'ok'); setHose(m.hose||'ok');
+  document.getElementById('p-oh-last').value=m.ohLast||'';
+  document.getElementById('p-oh-next').value=m.ohNext||'';
+  document.getElementById('p-hose-last').value=m.hoseLast||'';
+  document.getElementById('p-hose-cut').value=m.hoseCut||0;
+  document.getElementById('p-hose-next').value=m.hoseNext||'';
+  document.getElementById('p-checked').value=m.checked||'';
+  document.getElementById('p-nextmaint').value=m.nextMaint||'';
+  document.getElementById('p-note').value=m.note||'';
+  previewDL('p-oh-next','dl-oh');
+  previewDL('p-hose-next','dl-hose');
+  previewDL('p-nextmaint','dl-maint');
+  document.getElementById('panel').classList.add('open');
+  render();
+  document.getElementById('panel').scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+function closePanel(){document.getElementById('panel').classList.remove('open');SEL=null;render();}
+
+async function savePanel(){
+  if(!SEL)return;
+  const prev=JSON.stringify(M[SEL]||{});
+  const updated={
+    ...(M[SEL]||defaultMachine('')), tag:SEL,
+    aer:AER_TMP, hose:HOSE_TMP,
+    ohLast:document.getElementById('p-oh-last').value,
+    ohNext:document.getElementById('p-oh-next').value,
+    hoseLast:document.getElementById('p-hose-last').value,
+    hoseCut:parseInt(document.getElementById('p-hose-cut').value)||0,
+    hoseNext:document.getElementById('p-hose-next').value,
+    checked:document.getElementById('p-checked').value,
+    nextMaint:document.getElementById('p-nextmaint').value,
+    note:document.getElementById('p-note').value,
+  };
+  await saveMachineRemote(SEL, updated);
+  if(prev!==JSON.stringify(updated)){
+    await addHistoryRemote({
+      ts:new Date().toLocaleString('th-TH'), tsRaw:Date.now(),
+      tag:SEL, pond:updated.pond, aer:updated.aer, hose:updated.hose,
+      ohNext:updated.ohNext, hoseCut:updated.hoseCut,
+      hoseNext:updated.hoseNext, nextMaint:updated.nextMaint, note:updated.note
+    });
+  }
+  closePanel();
+}
+
+// ── view / history ────────────────────────────────────────────
+function showView(v){
+  document.getElementById('v-dash').style.display=v==='dash'?'':'none';
+  document.getElementById('v-hist').style.display=v==='hist'?'':'none';
+  document.getElementById('vbtn-dash').className='view-btn'+(v==='dash'?' active':'');
+  document.getElementById('vbtn-hist').className='view-btn'+(v==='hist'?' active':'');
+  if(v==='hist')loadHistory();
+}
+function renderHist(){
+  const fp=document.getElementById('hf-pond').value;
+  const fa=document.getElementById('hf-aer').value;
+  const rows=H.filter(h=>(fp==='all'||h.pond===fp)&&(fa==='all'||h.aer===fa));
+  const el=document.getElementById('hist-body');
+  if(!rows.length){el.innerHTML='<p class="empty">ยังไม่มีประวัติ</p>';return;}
+  el.innerHTML=`<div class="htbl-wrap"><table class="htbl">
+    <thead><tr>
+      <th style="width:115px">วันเวลา</th><th style="width:48px">บ่อ</th><th style="width:70px">Tag</th>
+      <th style="width:68px">Aerator</th><th style="width:62px">Hose</th>
+      <th style="width:88px">Overhaul ถัดไป</th><th style="width:55px">ตัด Hose</th>
+      <th style="width:88px">เปลี่ยน Hose</th><th style="width:88px">ซ่อมบำรุง</th><th>หมายเหตุ</th>
+    </tr></thead>
+    <tbody>${rows.map(r=>{
+      const doh=ddiff(r.ohNext),dh=ddiff(r.hoseNext),dm=ddiff(r.nextMaint);
+      return`<tr>
+        <td>${r.ts}</td><td>${r.pond}</td><td>${r.tag}</td>
+        <td><span class="pill ${r.aer==='ok'?'pill-ok':'pill-bad'}">${r.aer==='ok'?'ปกติ':'เสีย'}</span></td>
+        <td><span class="pill ${r.hose==='ok'?'pill-ok':'pill-warn'}">${r.hose==='ok'?'ปกติ':'สึก'}</span></td>
+        <td class="${dlClass(doh)}">${r.ohNext||'—'}</td>
+        <td style="text-align:center">${r.hoseCut||0} ครั้ง</td>
+        <td class="${dlClass(dh)}">${r.hoseNext||'—'}</td>
+        <td class="${dlClass(dm)}">${r.nextMaint||'—'}</td>
+        <td title="${r.note||''}">${r.note||'—'}</td>
+      </tr>`;
+    }).join('')}</tbody>
+  </table></div>`;
+}
+
+// ── export ────────────────────────────────────────────────────
+function doExport(){
+  const rows=[['Tag','บ่อ','Aerator','Hose','Overhaul ล่าสุด','Overhaul ถัดไป','สถานะ Overhaul','เปลี่ยน Hose ล่าสุด','ตัดสาย (ครั้ง)','เปลี่ยน Hose ถัดไป','สถานะ Hose','วันตรวจสอบ','ซ่อมบำรุงถัดไป','สถานะ PM','หมายเหตุ']];
+  for(const[tag,m]of Object.entries(M))
+    rows.push([tag,m.pond,m.aer==='ok'?'ปกติ':'เสีย',m.hose==='ok'?'ปกติ':'สึก',
+      m.ohLast,m.ohNext,dlText(ddiff(m.ohNext)),
+      m.hoseLast,m.hoseCut,m.hoseNext,dlText(ddiff(m.hoseNext)),
+      m.checked,m.nextMaint,dlText(ddiff(m.nextMaint)),m.note]);
+  const csv=rows.map(r=>r.map(c=>`"${String(c||'').replace(/"/g,'""')}"`).join(',')).join('\n');
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'}));
+  a.download='aerator_'+new Date().toISOString().slice(0,10)+'.csv';
+  a.click();
+}
+
+// ── boot ──────────────────────────────────────────────────────
+SCRIPT_URL = lsGet('gs_url') || '';
+if(SCRIPT_URL){
+  loadMachines();
+} else {
+  setSyncStatus('err','ยังไม่ได้ตั้งค่า');
+  document.getElementById('cfg-overlay').classList.add('open');
+  initLocal(); render();
+}
+</script>
+</body>
+</html>

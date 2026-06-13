@@ -168,6 +168,12 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#f5f5f5;color:#1a1a1a;fo
         <button class="btn" onclick="closePanel()">✕ ปิด</button>
       </div>
       <div class="sec">
+        <div class="sec-lbl">Code เครื่องจักร</div>
+        <div class="fg">
+          <div class="fi full"><input type="text" id="p-machine-code" placeholder="เช่น AER-ETP2-01, M-132A007 ..."></div>
+        </div>
+      </div>
+      <div class="sec sec-div">
         <div class="sec-lbl">สถานะ Aerator</div>
         <div class="toggle-row">
           <button class="tog" id="t-aerok" onclick="setAer('ok')">✓ ปกติ</button>
@@ -202,14 +208,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#f5f5f5;color:#1a1a1a;fo
         </div>
         <div class="dl-preview" id="dl-hose"></div>
       </div>
-      <div class="sec sec-div">
-        <div class="sec-lbl">กำหนดซ่อมบำรุง</div>
-        <div class="fg">
-          <div class="fi"><label>วันที่ตรวจสอบ</label><input type="date" id="p-checked"></div>
-          <div class="fi"><label>ซ่อมบำรุงครั้งถัดไป</label><input type="date" id="p-nextmaint" oninput="previewDL('p-nextmaint','dl-maint')"></div>
-        </div>
-        <div class="dl-preview" id="dl-maint"></div>
-      </div>
+
       <div class="sec sec-div">
         <div class="sec-lbl">หมายเหตุ</div>
         <div class="fg"><div class="fi full"><textarea id="p-note" placeholder="อาการ สาเหตุ หรือแผนงาน..."></textarea></div></div>
@@ -258,7 +257,7 @@ function lsSet(k,v){try{localStorage.setItem(k,v)}catch{}}
 
 // ── default machine ───────────────────────────────────────────
 function defaultMachine(pond){
-  return {tag:'',pond,aer:'ok',hose:'ok',ohLast:'',ohNext:'',hoseLast:'',hoseCut:0,hoseNext:'',checked:'',nextMaint:'',note:''};
+  return {tag:'',pond,aer:'ok',hose:'ok',machineCode:'',ohLast:'',ohNext:'',hoseLast:'',hoseCut:0,hoseNext:'',note:''};
 }
 function initLocal(){
   for(const[p,tags]of Object.entries(PONDS))
@@ -386,7 +385,7 @@ function renderAlerts(){
     const faults=tags.filter(t=>M[t]?.aer==='fault');
     const worn=tags.filter(t=>M[t]?.hose==='worn');
     const bad=[...new Set([...faults,...worn])];
-    const over=tags.filter(t=>{const m=M[t];return m&&[m.nextMaint,m.ohNext,m.hoseNext].some(d=>{const x=ddiff(d);return x!==null&&x<0;});});
+    const over=tags.filter(t=>{const m=M[t];return m&&[m.ohNext,m.hoseNext].some(d=>{const x=ddiff(d);return x!==null&&x<0;});});
     if(faults.length>=WARN_THRESHOLD)
       html+=`<div class="alert danger">🚨 บ่อ ${pond}: Aerator เสีย ${faults.length} เครื่อง (${faults.join(', ')}) — ต้องดำเนินการเร่งด่วน</div>`;
     else if(bad.length>=WARN_THRESHOLD)
@@ -400,10 +399,10 @@ function renderSummary(){
   const all=Object.values(M);
   document.getElementById('s-afault').textContent=all.filter(m=>m.aer==='fault').length;
   document.getElementById('s-hworn').textContent=all.filter(m=>m.hose==='worn').length;
-  document.getElementById('s-over').textContent=all.filter(m=>[m.nextMaint,m.ohNext,m.hoseNext].some(d=>{const x=ddiff(d);return x!==null&&x<0;})).length;
+  document.getElementById('s-over').textContent=all.filter(m=>[m.ohNext,m.hoseNext].some(d=>{const x=ddiff(d);return x!==null&&x<0;})).length;
 }
 function worstDiff(m){
-  const ds=[m.nextMaint,m.ohNext,m.hoseNext].map(ddiff).filter(d=>d!==null);
+  const ds=[m.ohNext,m.hoseNext].map(ddiff).filter(d=>d!==null);
   return ds.length?Math.min(...ds):null;
 }
 function renderPond(pond){
@@ -416,6 +415,7 @@ function renderPond(pond){
   else if(bad>=WARN_THRESHOLD){bClass='badge-warn';bLabel='แจ้งเตือน';}
   const cards=tags.map(tag=>{
     const m=M[tag]||{...defaultMachine(pond),tag};
+    const codeBadge=m.machineCode?`<div class="ct" style="margin-bottom:3px;font-weight:600;color:#555">${m.machineCode}</div>`:'';
     const aerPill=m.aer==='ok'?`<span class="pill pill-ok">🌀 ปกติ</span>`:`<span class="pill pill-bad">🌀 เสีย</span>`;
     const hosePill=m.hose==='ok'?`<span class="pill pill-ok">Hose ปกติ</span>`:`<span class="pill pill-warn">Hose สึก</span>`;
     const cutBadge=m.hoseCut>0?`<span class="pill pill-info">ตัด ${m.hoseCut}x</span>`:'';
@@ -426,6 +426,7 @@ function renderPond(pond){
     return `<div class="${cls}" onclick="openPanel('${tag}')" tabindex="0" role="button">
       <div class="ct">${tag}</div>
       <div class="cn">Aerator ${tag.slice(-3)}</div>
+      ${codeBadge}
       <div class="row-status">${aerPill}${hosePill}${cutBadge}</div>
       ${dlTxt?`<div class="dl-txt ${dlClass(diff)}">📅 ${dlTxt}</div>`:''}
     </div>`;
@@ -451,17 +452,15 @@ function openPanel(tag){
   document.getElementById('p-pond').textContent=m.pond+' — '+tag;
   document.getElementById('p-name').textContent='Aerator '+tag.slice(-3);
   setAer(m.aer||'ok'); setHose(m.hose||'ok');
+  document.getElementById('p-machine-code').value=m.machineCode||'';
   document.getElementById('p-oh-last').value=m.ohLast||'';
   document.getElementById('p-oh-next').value=m.ohNext||'';
   document.getElementById('p-hose-last').value=m.hoseLast||'';
   document.getElementById('p-hose-cut').value=m.hoseCut||0;
   document.getElementById('p-hose-next').value=m.hoseNext||'';
-  document.getElementById('p-checked').value=m.checked||'';
-  document.getElementById('p-nextmaint').value=m.nextMaint||'';
   document.getElementById('p-note').value=m.note||'';
   previewDL('p-oh-next','dl-oh');
   previewDL('p-hose-next','dl-hose');
-  previewDL('p-nextmaint','dl-maint');
   document.getElementById('panel').classList.add('open');
   render();
   document.getElementById('panel').scrollIntoView({behavior:'smooth',block:'nearest'});
@@ -474,22 +473,21 @@ async function savePanel(){
   const updated={
     ...(M[SEL]||defaultMachine('')), tag:SEL,
     aer:AER_TMP, hose:HOSE_TMP,
+    machineCode:document.getElementById('p-machine-code').value,
     ohLast:document.getElementById('p-oh-last').value,
     ohNext:document.getElementById('p-oh-next').value,
     hoseLast:document.getElementById('p-hose-last').value,
     hoseCut:parseInt(document.getElementById('p-hose-cut').value)||0,
     hoseNext:document.getElementById('p-hose-next').value,
-    checked:document.getElementById('p-checked').value,
-    nextMaint:document.getElementById('p-nextmaint').value,
     note:document.getElementById('p-note').value,
   };
   await saveMachineRemote(SEL, updated);
   if(prev!==JSON.stringify(updated)){
     await addHistoryRemote({
       ts:new Date().toLocaleString('th-TH'), tsRaw:Date.now(),
-      tag:SEL, pond:updated.pond, aer:updated.aer, hose:updated.hose,
+      tag:SEL, pond:updated.pond, aer:updated.aer, hose:updated.hose, machineCode:updated.machineCode||'',
       ohNext:updated.ohNext, hoseCut:updated.hoseCut,
-      hoseNext:updated.hoseNext, nextMaint:updated.nextMaint, note:updated.note
+      hoseNext:updated.hoseNext, note:updated.note
     });
   }
   closePanel();
@@ -511,21 +509,20 @@ function renderHist(){
   if(!rows.length){el.innerHTML='<p class="empty">ยังไม่มีประวัติ</p>';return;}
   el.innerHTML=`<div class="htbl-wrap"><table class="htbl">
     <thead><tr>
-      <th style="width:115px">วันเวลา</th><th style="width:48px">บ่อ</th><th style="width:70px">Tag</th>
+      <th style="width:115px">วันเวลา</th><th style="width:48px">บ่อ</th><th style="width:70px">Tag</th><th style="width:90px">Code เครื่องจักร</th>
       <th style="width:68px">Aerator</th><th style="width:62px">Hose</th>
       <th style="width:88px">Overhaul ถัดไป</th><th style="width:55px">ตัด Hose</th>
-      <th style="width:88px">เปลี่ยน Hose</th><th style="width:88px">ซ่อมบำรุง</th><th>หมายเหตุ</th>
+      <th style="width:88px">เปลี่ยน Hose</th><th>หมายเหตุ</th>
     </tr></thead>
     <tbody>${rows.map(r=>{
-      const doh=ddiff(r.ohNext),dh=ddiff(r.hoseNext),dm=ddiff(r.nextMaint);
+      const doh=ddiff(r.ohNext),dh=ddiff(r.hoseNext);
       return`<tr>
-        <td>${r.ts}</td><td>${r.pond}</td><td>${r.tag}</td>
+        <td>${r.ts}</td><td>${r.pond}</td><td>${r.tag}</td><td>${r.machineCode||'—'}</td>
         <td><span class="pill ${r.aer==='ok'?'pill-ok':'pill-bad'}">${r.aer==='ok'?'ปกติ':'เสีย'}</span></td>
         <td><span class="pill ${r.hose==='ok'?'pill-ok':'pill-warn'}">${r.hose==='ok'?'ปกติ':'สึก'}</span></td>
         <td class="${dlClass(doh)}">${r.ohNext||'—'}</td>
         <td style="text-align:center">${r.hoseCut||0} ครั้ง</td>
         <td class="${dlClass(dh)}">${r.hoseNext||'—'}</td>
-        <td class="${dlClass(dm)}">${r.nextMaint||'—'}</td>
         <td title="${r.note||''}">${r.note||'—'}</td>
       </tr>`;
     }).join('')}</tbody>
@@ -534,12 +531,12 @@ function renderHist(){
 
 // ── export ────────────────────────────────────────────────────
 function doExport(){
-  const rows=[['Tag','บ่อ','Aerator','Hose','Overhaul ล่าสุด','Overhaul ถัดไป','สถานะ Overhaul','เปลี่ยน Hose ล่าสุด','ตัดสาย (ครั้ง)','เปลี่ยน Hose ถัดไป','สถานะ Hose','วันตรวจสอบ','ซ่อมบำรุงถัดไป','สถานะ PM','หมายเหตุ']];
+  const rows=[['Tag','บ่อ','Code เครื่องจักร','Aerator','Hose','Overhaul ล่าสุด','Overhaul ถัดไป','สถานะ Overhaul','เปลี่ยน Hose ล่าสุด','ตัดสาย (ครั้ง)','เปลี่ยน Hose ถัดไป','สถานะ Hose','หมายเหตุ']];
   for(const[tag,m]of Object.entries(M))
-    rows.push([tag,m.pond,m.aer==='ok'?'ปกติ':'เสีย',m.hose==='ok'?'ปกติ':'สึก',
+    rows.push([tag,m.pond,m.machineCode||'',m.aer==='ok'?'ปกติ':'เสีย',m.hose==='ok'?'ปกติ':'สึก',
       m.ohLast,m.ohNext,dlText(ddiff(m.ohNext)),
       m.hoseLast,m.hoseCut,m.hoseNext,dlText(ddiff(m.hoseNext)),
-      m.checked,m.nextMaint,dlText(ddiff(m.nextMaint)),m.note]);
+      m.note]);
   const csv=rows.map(r=>r.map(c=>`"${String(c||'').replace(/"/g,'""')}"`).join(',')).join('\n');
   const a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'}));

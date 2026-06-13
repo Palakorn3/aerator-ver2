@@ -265,17 +265,15 @@ function initLocal(){
     tags.forEach(t=>{if(!M[t]){M[t]={...defaultMachine(p),tag:t};}});
 }
 
-// ── API helpers ───────────────────────────────────────────────
+// ── API helpers (GET only — avoids CORS preflight) ────────────
 async function apiGet(action){
   const r = await fetch(`${SCRIPT_URL}?action=${action}&t=${Date.now()}`);
   return r.json();
 }
 async function apiPost(action, data){
-  const r = await fetch(SCRIPT_URL, {
-    method:'POST', mode:'cors',
-    headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({action, data})
-  });
+  // Apps Script blocks POST CORS preflight — encode payload as GET param instead
+  const encoded = encodeURIComponent(JSON.stringify({action, data}));
+  const r = await fetch(`${SCRIPT_URL}?payload=${encoded}&t=${Date.now()}`);
   return r.json();
 }
 
